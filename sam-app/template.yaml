@@ -58,6 +58,170 @@ Resources:
             TableName: !Ref SamZooRegistryTable
       CodeUri: sam_zoo_dummy/
 
+  RegisterAnimalFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: RegisterAnimalPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - dynamodb:*
+                  - dax:*
+                  - application-autoscaling:DeleteScalingPolicy
+                  - application-autoscaling:DeregisterScalableTarget
+                  - application-autoscaling:DescribeScalableTargets
+                  - application-autoscaling:DescribeScalingActivities
+                  - application-autoscaling:DescribeScalingPolicies
+                  - application-autoscaling:PutScalingPolicy
+                  - application-autoscaling:RegisterScalableTarget
+                  - cloudwatch:DeleteAlarms
+                  - cloudwatch:DescribeAlarmHistory
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:DescribeAlarmsForMetric
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:ListMetrics
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:GetMetricData
+                  - datapipeline:ActivatePipeline
+                  - datapipeline:CreatePipeline
+                  - datapipeline:DeletePipeline
+                  - datapipeline:DescribeObjects
+                  - datapipeline:DescribePipelines
+                  - datapipeline:GetPipelineDefinition
+                  - datapipeline:ListPipelines
+                  - datapipeline:PutPipelineDefinition
+                  - datapipeline:QueryObjects
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - iam:GetRole
+                  - iam:ListRoles
+                  - kms:DescribeKey
+                  - kms:ListAliases
+                  - sns:CreateTopic
+                  - sns:DeleteTopic
+                  - sns:ListSubscriptions
+                  - sns:ListSubscriptionsByTopic
+                  - sns:ListTopics
+                  - sns:Subscribe
+                  - sns:Unsubscribe
+                  - sns:SetTopicAttributes
+                  - lambda:CreateFunction
+                  - lambda:ListFunctions
+                  - lambda:ListEventSourceMappings
+                  - lambda:CreateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                  - lambda:GetFunctionConfiguration
+                  - lambda:DeleteFunction
+                  - resource-groups:ListGroups
+                  - resource-groups:ListGroupResources
+                  - resource-groups:GetGroup
+                  - resource-groups:GetGroupQuery
+                  - resource-groups:DeleteGroup
+                  - resource-groups:CreateGroup
+                  - tag:GetResources
+                  - kinesis:ListStreams
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                Effect: Allow
+                Resource: "*"
+              - Action: cloudwatch:GetInsightRuleReport
+                Effect: Allow
+                Resource: arn:aws:cloudwatch:*:*:insight-rule/DynamoDBContributorInsights*
+              - Action:
+                  - iam:PassRole
+                Effect: Allow
+                Resource: "*"
+                Condition:
+                  StringLike:
+                    iam:PassedToService:
+                      - application-autoscaling.amazonaws.com
+                      - application-autoscaling.amazonaws.com.cn
+                      - dax.amazonaws.com
+              - Effect: Allow
+                Action: iam:CreateServiceLinkedRole
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    iam:AWSServiceName:
+                      - replication.dynamodb.amazonaws.com
+                      - dax.amazonaws.com
+                      - dynamodb.application-autoscaling.amazonaws.com
+                      - contributorinsights.dynamodb.amazonaws.com
+                      - kinesisreplication.dynamodb.amazonaws.com
+
+  RegisterAnimalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref SamZooRegistryTable
+      Role: !GetAtt RegisterAnimalFunctionRole.Arn
+      CodeUri: register_animal/
+
+  RegisterAnimalsStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString: !Sub |
+        {
+          "Comment": "A Step Function to register multiple animals",
+          "StartAt": "RegisterAnimals",
+          "States": {
+            "RegisterAnimals": {
+              "Type": "Map",
+              "ItemsPath": "$.animals",
+              "Iterator": {
+                "StartAt": "RegisterAnimal",
+                "States": {
+                  "RegisterAnimal": {
+                    "Type": "Task",
+                    "Resource": "${RegisterAnimalFunction.Arn}",
+                    "End": true
+                  }
+                }
+              },
+              "End": true,
+              "ResultPath": "$.NewResult",
+              "InputPath": "$.request"
+            }
+          }
+        }
+      RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
+
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionsExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt RegisterAnimalFunction.Arn
+      Path: /
+
 Outputs:
   HelloWorldApi:
     Description: API Gateway endpoint URL for Prod stage for Hello World function
@@ -71,3 +235,6 @@ Outputs:
   ZooRegistryTableName:
     Description: "SamZooRegistry Table Name"
     Value: !Ref SamZooRegistryTable
+  RegisterAnimalsStateMachineArn:
+    Description: ARN of the Step Function State Machine for registering animals
+    Value: !GetAtt RegisterAnimalsStateMachine.Arn
