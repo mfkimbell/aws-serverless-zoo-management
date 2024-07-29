@@ -12,4 +12,4 @@
 * ``` sam validate ``` validates syntax of template
 * ``` sam deploy --guided ``` deploy the sam template
 * ``` sam sync --stack-name sam-app --watch ``` sync application to automatically make different udpates depending on saved changes
-* ``` sam logs --stack-name <your-stack-name> --tail ``` locally streams all logs to terminal
+* ``` sam logs --stack-name sam-app --tail ``` locally streams all logs to terminal
