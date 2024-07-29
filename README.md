@@ -1,5 +1,12 @@
 # aws-serverless-zoo-management
 
+## Setup VScode with SAM
+* ``` brew install aws cli ``` installs aws cli
+* ``` aws configure ``` sync with account 
+* ``` brew tap aws/tap ``` wrapper
+* ``` brew install aws-sam-cli ``` install sam cli
+* ``` sam -h ``` to check if it works
+
 ## Sam Commands to know
 * ``` sam init ``` create sam template
 * ``` sam validate ``` validates syntax of template
