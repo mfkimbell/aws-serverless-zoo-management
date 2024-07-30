@@ -1,36 +1,50 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: AWS SAM CLI Nested Stack for Auto Dependency Layer Creation
 Metadata:
-  SamCliInfo: 1.112.0
+  SamCliInfo: 1.109.0
   key: AWS SAM CLI sync command
 Outputs:
-  HelloWorldFunction19d43fc4DepLayer:
-    Value:
-      Ref: HelloWorldFunction19d43fc4DepLayer
   PopulateZooRegistryFunction67d1b5e2DepLayer:
     Value:
       Ref: PopulateZooRegistryFunction67d1b5e2DepLayer
+  RegisterAnimalFunction0f57152bDepLayer:
+    Value:
+      Ref: RegisterAnimalFunction0f57152bDepLayer
+  StartStepFunctionLambdadc86d58aDepLayer:
+    Value:
+      Ref: StartStepFunctionLambdadc86d58aDepLayer
 Resources:
-  HelloWorldFunction19d43fc4DepLayer:
-    Metadata:
-      CreatedBy: AWS SAM CLI sync command
-    Properties:
-      CompatibleRuntimes:
-      - python3.9
-      ContentUri: /home/ec2-user/environment/projects/sam-app/.aws-sam/auto-dependency-layer/HelloWorldFunction19d43fc4DepLayer
-      Description: Auto created layer for dependencies of function HelloWorldFunction
-      LayerName: sam-app7427b055-HelloWorldFunction19d43fc4-DepLayer
-      RetentionPolicy: Delete
-    Type: AWS::Serverless::LayerVersion
   PopulateZooRegistryFunction67d1b5e2DepLayer:
     Metadata:
       CreatedBy: AWS SAM CLI sync command
     Properties:
       CompatibleRuntimes:
       - python3.9
-      ContentUri: /home/ec2-user/environment/projects/sam-app/.aws-sam/auto-dependency-layer/PopulateZooRegistryFunction67d1b5e2DepLayer
+      ContentUri: /Users/mitchellkimbell/Desktop/aws-serverless-zoo-management/sam-app/.aws-sam/auto-dependency-layer/PopulateZooRegistryFunction67d1b5e2DepLayer
       Description: Auto created layer for dependencies of function PopulateZooRegistryFunction
       LayerName: sam-app7427b055-PopulateZooRegistryFun67d1b5e2-DepLayer
+      RetentionPolicy: Delete
+    Type: AWS::Serverless::LayerVersion
+  RegisterAnimalFunction0f57152bDepLayer:
+    Metadata:
+      CreatedBy: AWS SAM CLI sync command
+    Properties:
+      CompatibleRuntimes:
+      - python3.9
+      ContentUri: /Users/mitchellkimbell/Desktop/aws-serverless-zoo-management/sam-app/.aws-sam/auto-dependency-layer/RegisterAnimalFunction0f57152bDepLayer
+      Description: Auto created layer for dependencies of function RegisterAnimalFunction
+      LayerName: sam-app7427b055-RegisterAnimalFunction0f57152b-DepLayer
+      RetentionPolicy: Delete
+    Type: AWS::Serverless::LayerVersion
+  StartStepFunctionLambdadc86d58aDepLayer:
+    Metadata:
+      CreatedBy: AWS SAM CLI sync command
+    Properties:
+      CompatibleRuntimes:
+      - python3.9
+      ContentUri: /Users/mitchellkimbell/Desktop/aws-serverless-zoo-management/sam-app/.aws-sam/auto-dependency-layer/StartStepFunctionLambdadc86d58aDepLayer
+      Description: Auto created layer for dependencies of function StartStepFunctionLambda
+      LayerName: sam-app7427b055-StartStepFunctionLambddc86d58a-DepLayer
       RetentionPolicy: Delete
     Type: AWS::Serverless::LayerVersion
 Transform: AWS::Serverless-2016-10-31

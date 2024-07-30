@@ -15,30 +15,10 @@ Globals:
   Api:
     TracingEnabled: true
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: HelloWorldFunction
-      Handler: app.lambda_handler
-      Runtime: python3.9
-      Architectures:
-      - x86_64
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
-      Layers:
-      - Fn::GetAtt:
-        - AwsSamAutoDependencyLayerNestedStack
-        - Outputs.HelloWorldFunction19d43fc4DepLayer
-    Metadata:
-      SamResourceId: HelloWorldFunction
-  ZooRegistryTable:
+  SamZooRegistryTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: ZooRegistry
+      TableName: SamZooRegistry
       AttributeDefinitions:
       - AttributeName: animalId
         AttributeType: S
@@ -68,31 +48,241 @@ Resources:
         - Outputs.PopulateZooRegistryFunction67d1b5e2DepLayer
     Metadata:
       SamResourceId: PopulateZooRegistryFunction
+  RegisterAnimalFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RegisterAnimalPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - dynamodb:*
+            - dax:*
+            - application-autoscaling:DeleteScalingPolicy
+            - application-autoscaling:DeregisterScalableTarget
+            - application-autoscaling:DescribeScalableTargets
+            - application-autoscaling:DescribeScalingActivities
+            - application-autoscaling:DescribeScalingPolicies
+            - application-autoscaling:PutScalingPolicy
+            - application-autoscaling:RegisterScalableTarget
+            - cloudwatch:DeleteAlarms
+            - cloudwatch:DescribeAlarmHistory
+            - cloudwatch:DescribeAlarms
+            - cloudwatch:DescribeAlarmsForMetric
+            - cloudwatch:GetMetricStatistics
+            - cloudwatch:ListMetrics
+            - cloudwatch:PutMetricAlarm
+            - cloudwatch:GetMetricData
+            - datapipeline:ActivatePipeline
+            - datapipeline:CreatePipeline
+            - datapipeline:DeletePipeline
+            - datapipeline:DescribeObjects
+            - datapipeline:DescribePipelines
+            - datapipeline:GetPipelineDefinition
+            - datapipeline:ListPipelines
+            - datapipeline:PutPipelineDefinition
+            - datapipeline:QueryObjects
+            - ec2:DescribeVpcs
+            - ec2:DescribeSubnets
+            - ec2:DescribeSecurityGroups
+            - iam:GetRole
+            - iam:ListRoles
+            - kms:DescribeKey
+            - kms:ListAliases
+            - sns:CreateTopic
+            - sns:DeleteTopic
+            - sns:ListSubscriptions
+            - sns:ListSubscriptionsByTopic
+            - sns:ListTopics
+            - sns:Subscribe
+            - sns:Unsubscribe
+            - sns:SetTopicAttributes
+            - lambda:CreateFunction
+            - lambda:ListFunctions
+            - lambda:ListEventSourceMappings
+            - lambda:CreateEventSourceMapping
+            - lambda:DeleteEventSourceMapping
+            - lambda:GetFunctionConfiguration
+            - lambda:DeleteFunction
+            - resource-groups:ListGroups
+            - resource-groups:ListGroupResources
+            - resource-groups:GetGroup
+            - resource-groups:GetGroupQuery
+            - resource-groups:DeleteGroup
+            - resource-groups:CreateGroup
+            - tag:GetResources
+            - kinesis:ListStreams
+            - kinesis:DescribeStream
+            - kinesis:DescribeStreamSummary
+            Effect: Allow
+            Resource: '*'
+          - Action: cloudwatch:GetInsightRuleReport
+            Effect: Allow
+            Resource: arn:aws:cloudwatch:*:*:insight-rule/DynamoDBContributorInsights*
+          - Action:
+            - iam:PassRole
+            Effect: Allow
+            Resource: '*'
+            Condition:
+              StringLike:
+                iam:PassedToService:
+                - application-autoscaling.amazonaws.com
+                - application-autoscaling.amazonaws.com.cn
+                - dax.amazonaws.com
+          - Effect: Allow
+            Action: iam:CreateServiceLinkedRole
+            Resource: '*'
+            Condition:
+              StringEquals:
+                iam:AWSServiceName:
+                - replication.dynamodb.amazonaws.com
+                - dax.amazonaws.com
+                - dynamodb.application-autoscaling.amazonaws.com
+                - contributorinsights.dynamodb.amazonaws.com
+                - kinesisreplication.dynamodb.amazonaws.com
+  RegisterAnimalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: SamZooRegistryTable
+      Role:
+        Fn::GetAtt:
+        - RegisterAnimalFunctionRole
+        - Arn
+      CodeUri: RegisterAnimalFunction
+      Layers:
+      - Fn::GetAtt:
+        - AwsSamAutoDependencyLayerNestedStack
+        - Outputs.RegisterAnimalFunction0f57152bDepLayer
+    Metadata:
+      SamResourceId: RegisterAnimalFunction
+  RegisterAnimalsStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString:
+        Fn::Sub: "{\n  \"Comment\": \"A Step Function to register multiple animals\"\
+          ,\n  \"StartAt\": \"RegisterAnimals\",\n  \"States\": {\n    \"RegisterAnimals\"\
+          : {\n      \"Type\": \"Map\",\n      \"ItemsPath\": \"$.input.request.animals\"\
+          ,\n      \"Iterator\": {\n        \"StartAt\": \"RegisterAnimal\",\n   \
+          \     \"States\": {\n          \"RegisterAnimal\": {\n            \"Type\"\
+          : \"Task\",\n            \"Resource\": \"${RegisterAnimalFunction.Arn}\"\
+          ,\n            \"End\": true\n          }\n        }\n      },\n      \"\
+          End\": true,\n      \"ResultPath\": \"$.NewResult\",\n      \"InputPath\"\
+          : \"$\"\n    }\n  }\n}\n"
+      RoleArn:
+        Fn::GetAtt:
+        - StepFunctionsExecutionRole
+        - Arn
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: states.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: StepFunctionsExecutionPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource:
+              Fn::GetAtt:
+              - RegisterAnimalFunction
+              - Arn
+      Path: /
+  StartStepFunctionLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: start_step_function.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN:
+            Ref: RegisterAnimalsStateMachine
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - states:StartExecution
+          Resource:
+            Ref: RegisterAnimalsStateMachine
+      CodeUri: StartStepFunctionLambda
+      Layers:
+      - Fn::GetAtt:
+        - AwsSamAutoDependencyLayerNestedStack
+        - Outputs.StartStepFunctionLambdadc86d58aDepLayer
+    Metadata:
+      SamResourceId: StartStepFunctionLambda
+  RegisterAllApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: RegisterAllApi
+      StageName: Prod
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: RegisterAll API
+        paths:
+          /registerAll:
+            post:
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StartStepFunctionLambda.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - StartStepFunctionLambda
+        - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RegisterAllApi}/*/*/registerAll
   AwsSamAutoDependencyLayerNestedStack:
     DeletionPolicy: Delete
     Metadata:
       CreatedBy: AWS SAM CLI sync command
     Properties:
-      TemplateURL: /home/ec2-user/environment/projects/sam-app/.aws-sam/auto-dependency-layer/adl_nested_template.yaml
+      TemplateURL: /Users/mitchellkimbell/Desktop/aws-serverless-zoo-management/sam-app/.aws-sam/auto-dependency-layer/adl_nested_template.yaml
     Type: AWS::CloudFormation::Stack
 Outputs:
-  HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value:
-      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/
-  HelloWorldFunction:
-    Description: Hello World Lambda Function ARN
-    Value:
-      Fn::GetAtt:
-      - HelloWorldFunction
-      - Arn
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value:
-      Fn::GetAtt:
-      - HelloWorldFunctionRole
-      - Arn
   ZooRegistryTableName:
     Description: SamZooRegistry Table Name
     Value:
       Ref: SamZooRegistryTable
+  RegisterAnimalsStateMachineArn:
+    Description: ARN of the Step Function State Machine for registering animals
+    Value:
+      Fn::GetAtt:
+      - RegisterAnimalsStateMachine
+      - Arn
+  RegisterAllApiEndpoint:
+    Description: API Gateway endpoint URL for the RegisterAll API
+    Value:
+      Fn::Sub: https://${RegisterAllApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/registerAll/

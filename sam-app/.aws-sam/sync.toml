@@ -2,6 +2,8 @@
 
 [sync_state]
 dependency_layer = true
-latest_infra_sync_time = "2024-07-28T18:53:51.290782"
+latest_infra_sync_time = "2024-07-29T22:14:50.173825"
 
-[resource_sync_states]
+[resource_sync_states."AutoDependencyLayerParentSyncFlow:StartStepFunctionLambda"]
+hash = "bbf0176c84c7ec605bb47fdc692ab1b11cb2ec633644a9fb36f4c369c5282c46"
+sync_time = "2024-07-29T22:17:27.938010"

@@ -16,21 +16,6 @@ Globals:
     TracingEnabled: true
 
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: hello_world/
-      Handler: app.lambda_handler
-      Runtime: python3.9
-      Architectures:
-      - x86_64
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
-
   SamZooRegistryTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -56,7 +41,7 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref SamZooRegistryTable
-      CodeUri: sam_zoo_dummy/
+      CodeUri: test_populate_zoo_registry/
 
   RegisterAnimalFunctionRole:
     Type: AWS::IAM::Role
@@ -182,7 +167,7 @@ Resources:
           "States": {
             "RegisterAnimals": {
               "Type": "Map",
-              "ItemsPath": "$.animals",
+              "ItemsPath": "$.input.request.animals",
               "Iterator": {
                 "StartAt": "RegisterAnimal",
                 "States": {
@@ -195,7 +180,7 @@ Resources:
               },
               "End": true,
               "ResultPath": "$.NewResult",
-              "InputPath": "$.request"
+              "InputPath": "$"
             }
           }
         }
@@ -222,19 +207,88 @@ Resources:
                 Resource: !GetAtt RegisterAnimalFunction.Arn
       Path: /
 
+  StartStepFunctionLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: start_step_function.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref RegisterAnimalsStateMachine
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "states:StartExecution"
+              Resource: !Ref RegisterAnimalsStateMachine
+      CodeUri: start_step_function/
+
+  RegisterAllApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: RegisterAllApi
+      StageName: Prod
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: "RegisterAll API"
+        paths:
+          /registerAll:
+            post:
+              x-amazon-apigateway-integration:
+                uri: 
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StartStepFunctionLambda.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt StartStepFunctionLambda.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RegisterAllApi}/*/*/registerAll
+
+  UpdateFeedingTimesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: update_feeding_times.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref SamZooRegistryTable
+      Role: !GetAtt RegisterAnimalFunctionRole.Arn
+      CodeUri: update_feeding_times/
+
+  UpdateFeedingScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "rate(1 hour)" # Adjust this to your desired schedule
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt UpdateFeedingTimesFunction.Arn
+          Id: "UpdateFeedingScheduleRule"
+
+  UpdateFeedingSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt UpdateFeedingTimesFunction.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt UpdateFeedingScheduleRule.Arn
+
 Outputs:
-  HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: Hello World Lambda Function ARN
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value: !GetAtt HelloWorldFunctionRole.Arn
   ZooRegistryTableName:
     Description: "SamZooRegistry Table Name"
     Value: !Ref SamZooRegistryTable
   RegisterAnimalsStateMachineArn:
     Description: ARN of the Step Function State Machine for registering animals
     Value: !GetAtt RegisterAnimalsStateMachine.Arn
+  RegisterAllApiEndpoint:
+    Description: "API Gateway endpoint URL for the RegisterAll API"
+    Value: !Sub "https://${RegisterAllApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/registerAll/"
