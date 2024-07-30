@@ -1,5 +1,7 @@
 # aws-serverless-zoo-management
 
+<img width="1406" alt="zoo-workflow copy" src="https://github.com/user-attachments/assets/51b59c8c-51eb-4710-8afc-1fad0b106cce">
+
 ## What this application does
 It uses AWS SAM to creat a zoo animal registry for new and born animals and creates a cron job that triggers automated feeding tracking for all animals based on their schedule. 
 
