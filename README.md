@@ -22,7 +22,11 @@ It uses AWS SAM to creat a zoo animal registry
 * **register_animal:** takes in a list of animals and adds them to a dynamoDB database. If they don't already have a birth date, it assumes they've just been born and gives them a DOB.
 * **start_step_function:** used to initiate the step function from the "registerAll" API route
 * **test_populate_zoo_registry:** initiates some test data to work with in the database
-* **update_feeding_times:** scans the database, if the current floored time matches one of the feeding times, it updates the "lastFed" field for the animals that match. An eventbridge eventbus bus rule triggers this function every hour. 
+* **update_feeding_times:** scans the database, if the current floored time matches one of the feeding times, it updates the "lastFed" field for the animals that match. An eventbridge eventbus bus rule triggers this function every hour.
+
+## Step Function
+batch processes the animals and uses "map" to call the lambda functions concurrently
+<img width="546" alt="Screenshot 2024-07-29 at 7 29 09 PM" src="https://github.com/user-attachments/assets/81c8b46f-6ea7-474a-a464-6bd83f848db7">
 
 ## Example POST to API for registering
 
