@@ -1,6 +1,6 @@
 # aws-serverless-zoo-management
 
-<img width="1406" alt="zoo-workflow copy" src="https://github.com/user-attachments/assets/09bda766-8b4c-4102-91bd-cc5048c0e2c1">
+<img width="1406" alt="zoo-workflow" src="https://github.com/user-attachments/assets/a0ee4cd8-56ae-4909-880b-ecec11cd06cb">
 
 
 ## What this application does
