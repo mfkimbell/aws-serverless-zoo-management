@@ -2,9 +2,8 @@
 
 <img width="1406" alt="zoo-workflow" src="https://github.com/user-attachments/assets/a0ee4cd8-56ae-4909-880b-ecec11cd06cb">
 
-
-## What this application does
-It uses AWS SAM to creat a zoo animal registry for new and born animals and creates a cron job that triggers automated feeding tracking for all animals based on their schedule. 
+## AWS SAM Serverless Zoo Manager
+A serverless AWS project that uses a full AWS SAM template. It builds an animal registry API Gateway API for new and born animals. It also uses a Cloudwatch Bus Rule to trigger a Lambda to automate the feeding for animals. Animals are stored in a DynamoDB database, and the animal processing is done through a Step Function with a Map to process the Lambda functions simultaneously.
 
 ## Setup VScode with SAM
 * ``` brew install aws cli ``` installs aws cli
