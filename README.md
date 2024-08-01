@@ -5,7 +5,7 @@
 ## AWS SAM Serverless Zoo Manager
 A serverless AWS project that uses a full AWS SAM template. It builds an animal registry API Gateway API for new and born animals. It also uses a Cloudwatch Bus Rule to trigger a Lambda to automate the feeding for animals. Animals are stored in a DynamoDB database, and the animal processing is done through a Step Function with a Map to process the Lambda functions simultaneously.
 
-## The Hackatho
+## AWS Game Day Event
 We were provided set AWS enviornments that were linked to unit tests that determined if our program was working. There were two main tasks, the birth registry and the automation. My team in particular recieved bonus points for being the first to complete the birth registry first. There was a live dashbaord that broadcast the team's points. We finished the entire project in just under the 6 hour time limit. 
 
 ## Learning to lead
