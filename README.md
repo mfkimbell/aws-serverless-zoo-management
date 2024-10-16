@@ -1,6 +1,7 @@
 # aws-serverless-zoo-management
 
-<img width="1406" alt="zoo-workflow" src="https://github.com/user-attachments/assets/a0ee4cd8-56ae-4909-880b-ecec11cd06cb">
+<img width="1406" alt="zoo-workflow" src="https://github.com/user-attachments/assets/46d7ae46-9f43-4e2e-9fe9-e5691c6c13a3">
+
 
 ## AWS SAM Serverless Zoo Manager
 A serverless AWS project that uses a full AWS SAM template. It builds an animal registry API Gateway API for new and born animals. It also uses a Cloudwatch Bus Rule to trigger a Lambda to automate the feeding for animals. Animals are stored in a DynamoDB database, and the animal processing is done through a Step Function with a Map to process the Lambda functions simultaneously.
